@@ -1,0 +1,772 @@
+/*author:
+	Inggar Saputra
+	Klaudius Naban
+	Jefry Persada*/
+
+package toturialJDBC;
+
+import java.awt.BorderLayout;
+import java.awt.EventQueue;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+
+import javax.swing.JFrame;
+import javax.swing.JPanel;
+import javax.swing.border.EmptyBorder;
+import javax.swing.JLabel;
+import javax.swing.JButton;
+import javax.swing.JTextField;
+import java.awt.Font;
+
+import javax.swing.DefaultRowSorter;
+import javax.swing.JOptionPane;
+import javax.swing.RowFilter;
+import javax.swing.RowSorter;
+import javax.swing.SwingConstants;
+import javax.swing.JTable;
+import javax.swing.JScrollPane;
+import javax.swing.GroupLayout;
+import javax.swing.GroupLayout.Alignment;
+import javax.swing.LayoutStyle.ComponentPlacement;
+import javax.swing.BoxLayout;
+import java.awt.Color;
+import java.text.SimpleDateFormat;
+import java.util.*;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableModel;
+import javax.swing.table.TableRowSorter;
+import javax.swing.JMenuBar;
+import javax.swing.JMenu;
+import javax.swing.JMenuItem;
+import javax.swing.JComboBox;
+import javax.swing.DefaultComboBoxModel;
+
+public class SwingUtama extends JFrame {
+
+	private static final long serialVersionUID = 458648069351365650L;
+
+	private JButton btnSave;
+	private JTextField textNama;
+	private JTextField textDeadline;
+	private JTextField textDeskripsi;
+	private JPanel contentPane;
+	private JPanel panelHome;
+	private JPanel panelAdd;
+	private JPanel panelDisplay;
+	private JPanel panelUpdate;
+	private JPanel panelSearch;
+	private JComboBox<String> tahunBox;
+	private static JLabel lblMonths;
+	private static DefaultTableModel mtblCalendar;
+
+	private static Database db = new Database();
+	private static TableTask tt = new TableTask();
+	private JTable table;
+	private JButton btnBackToMenu;
+	private JTable tableCalendar;
+	private JTextField textNamaUpdate;
+	private JTextField textDeadlineUpdate;
+	private JTextField textDeskripsiUpdate;
+	private static Object idToDelete;
+	private static Object idToUpdate;
+	private static int realYear, realMonth, currentYear, currentMonth;
+	private RowSorter<TableModel> find;
+	private JTable tableSearch;
+	protected SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+	private JTextField textStart;
+
+	/**
+	 * Launch the application.
+	 */
+	public static void main(String[] args) {
+		EventQueue.invokeLater(new Runnable() {
+			public void run() {
+				try {
+					SwingUtama frame = new SwingUtama();
+					frame.setVisible(true);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		});
+	}
+
+	/**
+	 * Create the frame.
+	 */
+
+	public SwingUtama() {
+		setType(Type.POPUP);
+		setTitle("Versi 0.1");
+		addComponentToPane();
+	}
+
+	public void addComponentToPane() {
+		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		setBounds(100, 100, 474, 398);
+
+		// ============== menu di sini ==============//
+		JMenuBar menuBar = new JMenuBar();
+		setJMenuBar(menuBar);
+
+		JMenu mnMenu = new JMenu("Menu");
+		menuBar.add(mnMenu);
+
+		JMenuItem mntmHome = new JMenuItem("Home");
+		mntmHome.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				showPanel(panelHome);
+			}
+		});
+		mnMenu.add(mntmHome);
+
+		JMenuItem mntmSearch = new JMenuItem("Search");
+		mntmSearch.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				showPanel(panelSearch);
+			}
+		});
+		mnMenu.add(mntmSearch);
+
+		JMenuItem mntmAbout = new JMenuItem("About");
+		mnMenu.add(mntmAbout);
+
+		JMenuItem mntmHelp = new JMenuItem("Help");
+		mnMenu.add(mntmHelp);
+
+		JMenuItem mntmExit = new JMenuItem("Exit");
+		mntmExit.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				System.exit(0);
+			}
+		});
+		mnMenu.add(mntmExit);
+
+		contentPane = new JPanel();
+		contentPane.setToolTipText("");
+		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
+		setContentPane(contentPane);
+		contentPane.setLayout(new BoxLayout(contentPane, BoxLayout.X_AXIS));
+
+		JPanel panelUtama = new JPanel();
+		contentPane.add(panelUtama);
+		panelUtama.setLayout(null);
+
+		// ========================= panel search mulai dari sini
+		// ===========================//
+		panelSearch = new JPanel();
+		panelSearch.setBounds(0, 0, 448, 328);
+		// panelUtama.add(panelSearch);
+		panelSearch.setLayout(null);
+
+		JLabel lblSearch = new JLabel("Search");
+		lblSearch.setBounds(22, 14, 46, 14);
+		panelSearch.add(lblSearch);
+
+		final JTextField textSearch = new JTextField();
+		textSearch.setBounds(79, 11, 296, 20);
+		panelSearch.add(textSearch);
+		textSearch.setColumns(10);
+
+		tableSearch = new JTable(tt);
+		tableSearch.setBounds(0, 0, 420, 250);
+		panelSearch.add(tableSearch, BorderLayout.CENTER);
+		find = new TableRowSorter<TableModel>(tt);
+		tableSearch.setRowSorter(find);
+
+		JScrollPane scrollPaneSearch = new JScrollPane(tableSearch);
+		scrollPaneSearch.setBounds(0, 57, 448, 260);
+		panelSearch.add(scrollPaneSearch);
+		scrollPaneSearch.setViewportView(tableSearch);
+
+		JButton btnGo = new JButton("Go");
+		btnGo.addActionListener(new ActionListener() {
+			@SuppressWarnings("unchecked")
+			public void actionPerformed(ActionEvent arg0) {
+				String text = textSearch.getText();
+				RowFilter<TableModel, Object> filter = RowFilter.orFilter(Arrays.asList(RowFilter.regexFilter(text, 0),
+								RowFilter.regexFilter(text, 1),
+								RowFilter.regexFilter(text, 2)));
+				((DefaultRowSorter<TableModel, Integer>) find).setRowFilter(filter);
+				tt.refreshTable();
+			}
+		});
+		btnGo.setBounds(389, 10, 49, 23);
+		panelSearch.add(btnGo);
+		// ======================== akhir panel update =======================//
+
+		// ====================== panel add mulai dari sini ====================//
+		panelAdd = new JPanel();
+		panelAdd.setBounds(0, 0, 448, 328);
+		panelUtama.add(panelAdd);
+		
+				textNama = new JTextField();
+				textNama.setBounds(170, 72, 228, 20);
+				textNama.setColumns(10);
+				
+						textDeadline = new JTextField();
+						textDeadline.setBounds(170, 169, 107, 20);
+						textDeadline.setColumns(10);
+						
+								textDeskripsi = new JTextField();
+								textDeskripsi.setBounds(170, 212, 228, 59);
+								textDeskripsi.setColumns(10);
+								
+										JLabel lblNamaTask = new JLabel("Nama Task");
+										lblNamaTask.setBounds(10, 78, 92, 14);
+										
+												JLabel lblDeadline = new JLabel("Deadline");
+												lblDeadline.setBounds(10, 172, 92, 14);
+												
+														JLabel lblDeskripsi = new JLabel("Deskripsi");
+														lblDeskripsi.setBounds(10, 234, 92, 14);
+														
+																btnSave = new JButton("Save");
+																btnSave.addActionListener(new ActionListener() {
+																	public void actionPerformed(ActionEvent e) {
+																		if (textNama.getText().isEmpty()) {
+																			JOptionPane.showMessageDialog(null, "masukkan nama task");
+																		} else {
+																			db.insertData(textNama.getText(), textDeadline.getText(),
+																					textDeskripsi.getText());
+																			textNama.setText("");
+																			textDeadline.setText("");
+																			textDeskripsi.setText("");
+																			JOptionPane.showMessageDialog(null,
+																					"tugas berhasil ditambahkan");
+																		}
+
+																		tt.refreshTable();
+																	}
+																});
+																btnSave.setBounds(170, 294, 107, 23);
+																
+																		JButton btnBack = new JButton("Back");
+																		btnBack.addActionListener(new ActionListener() {
+																			public void actionPerformed(ActionEvent e) {
+																				showPanel(panelHome);
+																			}
+																		});
+																		btnBack.setBounds(287, 294, 103, 23);
+																		
+																				panelAdd.setLayout(null);
+																				panelAdd.add(textNama);
+																				panelAdd.add(textDeadline);
+																				panelAdd.add(textDeskripsi);
+																				panelAdd.add(lblNamaTask);
+																				panelAdd.add(lblDeadline);
+																				panelAdd.add(lblDeskripsi);
+																				panelAdd.add(btnSave);
+																				panelAdd.add(btnBack);
+																				
+																				JLabel lblT = new JLabel("Task Type");
+																				lblT.setBounds(10, 33, 74, 14);
+																				panelAdd.add(lblT);
+																				
+																				final JComboBox comboBox = new JComboBox();
+																				comboBox.addActionListener(new ActionListener() {
+																					public void actionPerformed(ActionEvent arg0) {
+																						
+																						if(comboBox.getSelectedItem().equals("Floating Task"))
+																						{
+																							textStart.setEnabled(false);
+																							textDeadline.setEnabled(false);
+																						}
+																						
+																						else if (comboBox.getSelectedItem().equals("Time Task"))
+																						{
+																							textStart.setEnabled(true);
+																							textDeadline.setEnabled(true);
+																						}
+																					}
+																				});
+																				comboBox.setModel(new DefaultComboBoxModel(new Object[] {"Time Task", "Floating Task"}));
+																				comboBox.setBounds(170, 30, 107, 20);
+																				panelAdd.add(comboBox);
+																				
+																				JLabel lblStartTime = new JLabel("Start Time");
+																				lblStartTime.setBounds(10, 128, 74, 14);
+																				panelAdd.add(lblStartTime);
+																				
+																				textStart = new JTextField();
+																				textStart.setColumns(10);
+																				textStart.setBounds(170, 125, 107, 20);
+																				panelAdd.add(textStart);
+		// ======== akhir panel search ==============//
+
+		// ================== panel home mulai dari sini ==============//
+		panelHome = new JPanel();
+		panelHome.setBackground(Color.CYAN);
+		panelHome.setBounds(0, 0, 448, 328);
+//		panelUtama.add(panelHome);
+
+		JLabel lblTitle = new JLabel("Student Activity Manager");
+		lblTitle.setHorizontalAlignment(SwingConstants.CENTER);
+		lblTitle.setFont(new Font("Segoe UI Semibold", Font.PLAIN, 15));
+
+		JButton btnTambahkanTask = new JButton("Insert");
+		btnTambahkanTask.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				showPanel(panelAdd);
+			}
+		});
+
+		JButton btnDisplay = new JButton("Display");
+		btnDisplay.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				showPanel(panelDisplay);
+			}
+		});
+
+		JScrollPane scrollPane_1 = new JScrollPane();
+
+		tahunBox = new JComboBox<String>();
+		tahunBox.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				if (tahunBox.getSelectedItem() != null) {
+					String tahun = tahunBox.getSelectedItem().toString();
+					currentYear = Integer.parseInt(tahun);
+					refreshCalendar(currentMonth, currentYear);
+				}
+			}
+		});
+
+		lblMonths = new JLabel("New label");
+
+		JButton buttonPrev = new JButton("<");
+		buttonPrev.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				if (currentMonth == 0) { // Back one year
+					currentMonth = 11;
+					currentYear -= 1;
+				} else { // Back one month
+					currentMonth -= 1;
+				}
+				refreshCalendar(currentMonth, currentYear);
+			}
+		});
+
+		JButton buttonNext = new JButton(">");
+		buttonNext.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				if (currentMonth == 11) { // Foward one year
+					currentMonth = 0;
+					currentYear += 1;
+				} else { // Foward one month
+					currentMonth += 1;
+				}
+				refreshCalendar(currentMonth, currentYear);
+			}
+		});
+
+		JLabel lblTahun = new JLabel("Tahun");
+
+		GroupLayout gl_panelHome = new GroupLayout(panelHome);
+		gl_panelHome
+				.setHorizontalGroup(gl_panelHome
+						.createParallelGroup(Alignment.LEADING)
+						.addGroup(
+								gl_panelHome.createSequentialGroup()
+										.addContainerGap()
+										.addComponent(lblTitle)
+										.addContainerGap(264, Short.MAX_VALUE))
+						.addGroup(
+								gl_panelHome
+										.createSequentialGroup()
+										.addGroup(
+												gl_panelHome
+														.createParallelGroup(
+																Alignment.LEADING)
+														.addGroup(
+																gl_panelHome
+																		.createSequentialGroup()
+																		.addGap(195)
+																		.addComponent(
+																				buttonPrev,
+																				GroupLayout.PREFERRED_SIZE,
+																				43,
+																				GroupLayout.PREFERRED_SIZE)
+																		.addGap(41)
+																		.addComponent(
+																				lblMonths)
+																		.addPreferredGap(
+																				ComponentPlacement.RELATED,
+																				35,
+																				Short.MAX_VALUE)
+																		.addComponent(
+																				buttonNext))
+														.addGroup(
+																gl_panelHome
+																		.createSequentialGroup()
+																		.addGap(31)
+																		.addComponent(
+																				btnTambahkanTask,
+																				GroupLayout.PREFERRED_SIZE,
+																				70,
+																				GroupLayout.PREFERRED_SIZE)
+																		.addGap(55)
+																		.addComponent(
+																				btnDisplay)
+																		.addPreferredGap(
+																				ComponentPlacement.RELATED,
+																				105,
+																				Short.MAX_VALUE)
+																		.addComponent(
+																				lblTahun)
+																		.addGap(18)
+																		.addComponent(
+																				tahunBox,
+																				GroupLayout.PREFERRED_SIZE,
+																				GroupLayout.DEFAULT_SIZE,
+																				GroupLayout.PREFERRED_SIZE)))
+										.addContainerGap(44, Short.MAX_VALUE))
+						.addGroup(
+								gl_panelHome
+										.createSequentialGroup()
+										.addGap(41)
+										.addComponent(scrollPane_1,
+												GroupLayout.PREFERRED_SIZE,
+												363, GroupLayout.PREFERRED_SIZE)
+										.addContainerGap(44, Short.MAX_VALUE)));
+		gl_panelHome
+				.setVerticalGroup(gl_panelHome
+						.createParallelGroup(Alignment.LEADING)
+						.addGroup(
+								gl_panelHome
+										.createSequentialGroup()
+										.addComponent(lblTitle)
+										.addPreferredGap(
+												ComponentPlacement.UNRELATED)
+										.addGroup(
+												gl_panelHome
+														.createParallelGroup(
+																Alignment.BASELINE)
+														.addComponent(
+																buttonPrev)
+														.addComponent(lblMonths)
+														.addComponent(
+																buttonNext))
+										.addGap(3)
+										.addComponent(scrollPane_1,
+												GroupLayout.PREFERRED_SIZE,
+												211, GroupLayout.PREFERRED_SIZE)
+										.addGap(18)
+										.addGroup(
+												gl_panelHome
+														.createParallelGroup(
+																Alignment.BASELINE)
+														.addComponent(
+																btnDisplay)
+														.addComponent(
+																btnTambahkanTask,
+																GroupLayout.DEFAULT_SIZE,
+																GroupLayout.DEFAULT_SIZE,
+																Short.MAX_VALUE)
+														.addComponent(
+																tahunBox,
+																GroupLayout.PREFERRED_SIZE,
+																GroupLayout.DEFAULT_SIZE,
+																GroupLayout.PREFERRED_SIZE)
+														.addComponent(lblTahun))
+										.addContainerGap()));
+
+		tableCalendar = new JTable();
+		tableCalendar.setFont(new Font("Vani", Font.PLAIN, 13));
+		mtblCalendar = new DefaultTableModel(new Object[][] {
+				{ null, null, null, null, null, null, null },
+				{ null, null, null, null, null, null, null },
+				{ null, null, null, null, null, null, null },
+				{ null, null, null, null, null, null, null },
+				{ null, null, null, null, null, null, null },
+				{ null, null, null, null, null, null, null }, },
+				new String[] { "Minggu", "Senin", "Selasa", "Rabu", "Kamis",
+						"Jumat", "Sabtu" });
+		tableCalendar.setModel(mtblCalendar);
+		tableCalendar.setRowHeight(32);
+
+		scrollPane_1.setViewportView(tableCalendar);
+		panelHome.setLayout(gl_panelHome);
+		// ========================== akhir panel home =========================//
+
+		// ========================== panel update mulai dari sini =========================//
+		panelUpdate = new JPanel();
+		panelUpdate.setBounds(0, 0, 439, 262);
+		// panelUtama.add(panelUpdate);
+
+		JButton btnUpdate2 = new JButton("Update");
+		btnUpdate2.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				if (textNamaUpdate.getText().isEmpty()) {
+					JOptionPane.showMessageDialog(null, "masukkan nama task");
+				} else {
+					db.updateData(idToUpdate.toString(),
+							textNamaUpdate.getText(),
+							textDeadlineUpdate.getText(),
+							textDeskripsiUpdate.getText());
+					textNamaUpdate.setText("");
+					textDeadlineUpdate.setText("");
+					textDeskripsiUpdate.setText("");
+					JOptionPane.showMessageDialog(null,
+							"tugas berhasil diupdate");
+				}
+				tt.refreshTable();
+			}
+		});
+
+		textNamaUpdate = new JTextField();
+		textNamaUpdate.setColumns(10);
+
+		textDeadlineUpdate = new JTextField();
+		textDeadlineUpdate.setColumns(10);
+
+		JButton btnBackUpdate = new JButton("Back");
+		btnBackUpdate.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				showPanel(panelDisplay);
+			}
+		});
+
+		textDeskripsiUpdate = new JTextField();
+		textDeskripsiUpdate.setColumns(10);
+
+		JLabel lblNamaTaskUpdate = new JLabel("Nama Task");
+
+		JLabel lblDeadlineUpdate = new JLabel("Deadline");
+
+		JLabel lblDeskripsiUpdate = new JLabel("Deskripsi");
+		GroupLayout gl_panelUpdate = new GroupLayout(panelUpdate);
+		gl_panelUpdate
+				.setHorizontalGroup(gl_panelUpdate
+						.createParallelGroup(Alignment.LEADING)
+						.addGroup(
+								Alignment.TRAILING,
+								gl_panelUpdate
+										.createSequentialGroup()
+										.addGap(27)
+										.addGroup(
+												gl_panelUpdate
+														.createParallelGroup(
+																Alignment.LEADING)
+														.addComponent(
+																lblNamaTaskUpdate)
+														.addComponent(
+																lblDeadlineUpdate)
+														.addComponent(
+																lblDeskripsiUpdate))
+										.addPreferredGap(
+												ComponentPlacement.RELATED,
+												118, Short.MAX_VALUE)
+										.addGroup(
+												gl_panelUpdate
+														.createParallelGroup(
+																Alignment.TRAILING)
+														.addComponent(
+																textDeskripsiUpdate,
+																Alignment.LEADING)
+														.addComponent(
+																textDeadlineUpdate,
+																Alignment.LEADING)
+														.addGroup(
+																gl_panelUpdate
+																		.createSequentialGroup()
+																		.addComponent(
+																				btnUpdate2)
+																		.addGap(18)
+																		.addComponent(
+																				btnBackUpdate))
+														.addComponent(
+																textNamaUpdate,
+																Alignment.LEADING,
+																GroupLayout.DEFAULT_SIZE,
+																206,
+																Short.MAX_VALUE))
+										.addGap(37)));
+		gl_panelUpdate
+				.setVerticalGroup(gl_panelUpdate
+						.createParallelGroup(Alignment.LEADING)
+						.addGroup(
+								gl_panelUpdate
+										.createSequentialGroup()
+										.addGap(44)
+										.addGroup(
+												gl_panelUpdate
+														.createParallelGroup(
+																Alignment.BASELINE)
+														.addComponent(
+																textNamaUpdate,
+																GroupLayout.PREFERRED_SIZE,
+																GroupLayout.DEFAULT_SIZE,
+																GroupLayout.PREFERRED_SIZE)
+														.addComponent(
+																lblNamaTaskUpdate))
+										.addGap(18)
+										.addGroup(
+												gl_panelUpdate
+														.createParallelGroup(
+																Alignment.BASELINE)
+														.addComponent(
+																textDeadlineUpdate,
+																GroupLayout.PREFERRED_SIZE,
+																GroupLayout.DEFAULT_SIZE,
+																GroupLayout.PREFERRED_SIZE)
+														.addComponent(
+																lblDeadlineUpdate))
+										.addGap(18)
+										.addGroup(
+												gl_panelUpdate
+														.createParallelGroup(
+																Alignment.TRAILING)
+														.addComponent(
+																textDeskripsiUpdate,
+																GroupLayout.PREFERRED_SIZE,
+																GroupLayout.DEFAULT_SIZE,
+																GroupLayout.PREFERRED_SIZE)
+														.addComponent(
+																lblDeskripsiUpdate))
+										.addGap(42)
+										.addGroup(
+												gl_panelUpdate
+														.createParallelGroup(
+																Alignment.BASELINE)
+														.addComponent(
+																btnBackUpdate)
+														.addComponent(
+																btnUpdate2))
+										.addContainerGap()));
+		panelUpdate.setLayout(gl_panelUpdate);
+		// =================== panel add berakhir ================//
+
+		// ================ panel display mulai dari sini ================//
+		panelDisplay = new JPanel();
+		panelDisplay.setBounds(0, 0, 434, 261);
+		panelDisplay.setBorder(new EmptyBorder(5, 5, 5, 5));
+		// panel.add(panelDisplay);
+
+		table = new JTable(tt);
+		table.setBounds(0, 0, 420, 250);
+		panelDisplay.add(table, BorderLayout.CENTER);
+		RowSorter<TableModel> sorter = new TableRowSorter<TableModel>(tt);
+		table.setRowSorter(sorter);
+
+		JScrollPane scrollPane = new JScrollPane(table);
+
+		btnBackToMenu = new JButton("Back To Menu");
+		btnBackToMenu.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				showPanel(panelHome);
+			}
+		});
+
+		JButton btnDelete_1 = new JButton("Delete");
+		btnDelete_1.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				int selRow = table.getSelectedRow();
+				idToDelete = tt.getIdToDo(table.convertRowIndexToModel(selRow));
+
+				if (selRow != -1) {
+					tt.removeRow(selRow);
+					db.deleteData(idToDelete.toString());
+				}
+			}
+		});
+
+		JButton btnUpdate = new JButton("Update");
+		btnUpdate.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				ArrayList<String> tampil = new ArrayList<>();
+				int selRow = table.getSelectedRow();
+				idToUpdate = tt.getIdToDo(table.convertRowIndexToModel(selRow));
+				showPanel(panelUpdate);
+				tampil.add(table.getValueAt(selRow, 0).toString());
+				tampil.add(table.getValueAt(selRow, 1).toString());
+				tampil.add(table.getValueAt(selRow, 2).toString());
+				textNamaUpdate.setText(tampil.get(0));
+				textDeadlineUpdate.setText(tampil.get(1));
+				textDeskripsiUpdate.setText(tampil.get(2));
+			}
+		});
+		GroupLayout gl_panelDisplay = new GroupLayout(panelDisplay);
+		gl_panelDisplay
+				.setHorizontalGroup(gl_panelDisplay
+						.createParallelGroup(Alignment.TRAILING)
+						.addComponent(scrollPane, GroupLayout.DEFAULT_SIZE,
+								424, Short.MAX_VALUE)
+						.addGroup(
+								gl_panelDisplay
+										.createSequentialGroup()
+										.addContainerGap(151, Short.MAX_VALUE)
+										.addComponent(btnUpdate)
+										.addPreferredGap(
+												ComponentPlacement.RELATED)
+										.addComponent(btnDelete_1)
+										.addPreferredGap(
+												ComponentPlacement.RELATED)
+										.addComponent(btnBackToMenu)
+										.addContainerGap()));
+		gl_panelDisplay.setVerticalGroup(gl_panelDisplay.createParallelGroup(
+				Alignment.LEADING)
+				.addGroup(
+						gl_panelDisplay
+								.createSequentialGroup()
+								.addComponent(scrollPane,
+										GroupLayout.PREFERRED_SIZE, 223,
+										GroupLayout.PREFERRED_SIZE)
+								.addPreferredGap(ComponentPlacement.RELATED)
+								.addGroup(
+										gl_panelDisplay
+												.createParallelGroup(
+														Alignment.BASELINE)
+												.addComponent(btnBackToMenu)
+												.addComponent(btnDelete_1)
+												.addComponent(btnUpdate))
+								.addGap(484)));
+		panelDisplay.setLayout(gl_panelDisplay);
+		// ================= akhir panel display ===========================//
+
+		GregorianCalendar cal = new GregorianCalendar(); // Create calendar
+		cal.get(GregorianCalendar.DAY_OF_MONTH);
+		realMonth = cal.get(GregorianCalendar.MONTH); // Get month
+		realYear = cal.get(GregorianCalendar.YEAR); // Get year
+		currentMonth = realMonth; // Match month and year
+		currentYear = realYear;
+
+		for (int i = realYear - 100; i <= realYear + 100; i++) {
+			tahunBox.addItem(String.valueOf(i));
+		}
+
+		refreshCalendar(realMonth, realYear);
+	}
+
+	protected void showPanel(JPanel panel) {
+		getContentPane().removeAll();
+		getContentPane().add(panel);
+		repaint();
+		printAll(getGraphics());
+	}
+
+	public void refreshCalendar(int month, int year) {
+		String[] months = { "Januari", "Februari", "Maret", "April", "Mei",
+				"Juni", "Juli", "Augustus", "September", "Oktober", "November",
+				"Desember" };
+		lblMonths.setText(months[month]);
+		tahunBox.setSelectedItem(String.valueOf(year));
+
+		for (int i = 0; i < 6; i++) {
+			for (int j = 0; j < 7; j++) {
+				mtblCalendar.setValueAt(null, i, j);
+			}
+		}
+
+		// Get first day of month and number of days
+		GregorianCalendar calendar = new GregorianCalendar(year, month, 1);
+		int nod = calendar.getActualMaximum(GregorianCalendar.DAY_OF_MONTH);
+		int som = calendar.get(GregorianCalendar.DAY_OF_WEEK);
+
+		// Draw calendar
+		for (int i = 1; i <= nod; i++) {
+			int row = new Integer((i + som - 2) / 7);
+			int column = (i + som - 2) % 7;
+			mtblCalendar.setValueAt(i, row, column);
+		}
+	}
+}
